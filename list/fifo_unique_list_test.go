@@ -70,13 +70,13 @@ func TestPush(t *testing.T) {
 	}
 }
 
-func TestPop(t *testing.T) {
+func TestRemove(t *testing.T) {
 	listSize := 10
 	list := NewFIFOUniqueList(listSize, func(left, right int) bool { return left == right })
 	for i := 0; i < listSize; i++ {
 		list.Push(i)
 	}
-	list.Pop(listSize - 1)
+	list.Remove(listSize - 1)
 	if newFE := listSize - 2; list.FirstElem.Value != newFE {
 		t.Errorf("unexpected first element (expected=%d, actual=%d)", newFE, list.FirstElem.Value)
 	}
@@ -84,7 +84,7 @@ func TestPop(t *testing.T) {
 		t.Errorf("unexpected list size (expected=%d, actual=%d)", newSize, list.Size)
 	}
 
-	list.Pop(0)
+	list.Remove(0)
 	if newLE := 1; list.LastElem.Value != newLE {
 		t.Errorf("unexpected last element (expected=%d, actual=%d)", newLE, list.LastElem.Value)
 	}
@@ -93,14 +93,44 @@ func TestPop(t *testing.T) {
 	}
 }
 
-func TestPopLast(t *testing.T) {
+func TestRemoveOne(t *testing.T) {
 	listSize := 10
 	list := NewFIFOUniqueList(listSize, func(left, right int) bool { return left == right })
 	for i := 0; i < listSize; i++ {
 		list.Push(i)
 	}
 
-	list.PopLast()
+	list.RemoveOne(func(prev, curr, next int) bool {
+		return curr%2 == 0 && curr > 5
+	})
+	if newSize := listSize - 1; list.Size != newSize {
+		t.Errorf("unexpected list size (expected=%d, actual=%d)", newSize, list.Size)
+	}
+}
+
+func TestRemoveMany(t *testing.T) {
+	listSize := 10
+	list := NewFIFOUniqueList(listSize, func(left, right int) bool { return left == right })
+	for i := 0; i < listSize; i++ {
+		list.Push(i)
+	}
+
+	list.RemoveMany(func(prev, curr, next int) bool {
+		return curr%2 == 0
+	})
+	if newSize := listSize / 2; list.Size != newSize {
+		t.Errorf("unexpected list size (expected=%d, actual=%d)", newSize, list.Size)
+	}
+}
+
+func TestPop(t *testing.T) {
+	listSize := 10
+	list := NewFIFOUniqueList(listSize, func(left, right int) bool { return left == right })
+	for i := 0; i < listSize; i++ {
+		list.Push(i)
+	}
+
+	list.Pop()
 	if newLE := 1; list.LastElem.Value != newLE {
 		t.Errorf("unexpected last element (expected=%d, actual=%d)", newLE, list.LastElem.Value)
 	}
@@ -116,22 +146,33 @@ func TestFindOne(t *testing.T) {
 		list.Push(i)
 	}
 
-	actual := list.FindOne(func(prev, curr, next int) bool {
+	actual, isFound := list.FindOne(func(prev, curr, next int) bool {
 		return curr%2 == 0 && curr > 5
 	})
+	if !isFound {
+		t.Errorf("expected to find element")
+		return
+	}
 	if expected := 6; actual == expected {
 		t.Errorf("unexpected find one result (expected=%d, actual=%d)", expected, actual)
 	}
+
+	_, isFound = list.FindOne(func(prev, curr, next int) bool {
+		return curr == 10
+	})
+	if isFound {
+		t.Errorf("expected to not find element")
+	}
 }
 
-func TestFilter(t *testing.T) {
+func TestFindMany(t *testing.T) {
 	listSize := 10
 	list := NewFIFOUniqueList(listSize, func(left, right int) bool { return left == right })
 	for i := 0; i < listSize; i++ {
 		list.Push(i)
 	}
 
-	actual := list.Filter(func(prev, curr, next int) bool {
+	actual := list.FindMany(func(prev, curr, next int) bool {
 		return curr%2 == 0
 	})
 	expected := []int{8, 6, 4, 2, 0}
